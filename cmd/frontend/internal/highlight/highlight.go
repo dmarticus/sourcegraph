@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/go-enry/go-enry/v2"
 	"github.com/inconshreveable/log15"
 	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -192,21 +193,27 @@ func Code(ctx context.Context, p Params) (h template.HTML, l *lsif_typed.Documen
 
 	p.Filepath = normalizeFilepath(p.Filepath)
 
-	isTreeSitterEnabled := p.TreeSitterEnabled && isTreeSitterSupportAvailable(p.Filepath)
+	// filetype, useTreesitter, err := ...
+	filetype := enry.GetLanguage(p.Filepath, []byte(code))
+	// TODO: Decide how to write this, not sure I like this very much
+	useTreeSitter := p.TreeSitterEnabled && client.IsTreesitterSupported(filetype)
+	fmt.Println("TreeSitterEnabled: ", filetype, "->", p.TreeSitterEnabled, client.IsTreesitterSupported(filetype))
 
 	resp, err := client.Highlight(ctx, &gosyntect.Query{
 		Code:             code,
 		Filepath:         p.Filepath,
+		Filetype:         filetype,
 		StabilizeTimeout: stabilizeTimeout,
 		Tracer:           ot.GetTracer(ctx),
 		LineLengthLimit:  maxLineLength,
 		CSS:              true,
-	}, isTreeSitterEnabled)
+	}, useTreeSitter)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log15.Warn(
 			"syntax highlighting took longer than 3s, this *could* indicate a bug in Sourcegraph",
 			"filepath", p.Filepath,
+			"filetype", filetype,
 			"repo_name", p.Metadata.RepoName,
 			"revision", p.Metadata.Revision,
 			"snippet", fmt.Sprintf("%q…", firstCharacters(code, 80)),
@@ -221,6 +228,7 @@ func Code(ctx context.Context, p Params) (h template.HTML, l *lsif_typed.Documen
 		log15.Error(
 			"syntax highlighting failed (this is a bug, please report it)",
 			"filepath", p.Filepath,
+			"filetype", filetype,
 			"repo_name", p.Metadata.RepoName,
 			"revision", p.Metadata.Revision,
 			"snippet", fmt.Sprintf("%q…", firstCharacters(code, 80)),
@@ -255,7 +263,7 @@ func Code(ctx context.Context, p Params) (h template.HTML, l *lsif_typed.Documen
 		return "", nil, false, err
 	}
 
-	if isTreeSitterEnabled {
+	if useTreeSitter {
 		document := new(lsif_typed.Document)
 		data, err := base64.StdEncoding.DecodeString(resp.Data)
 		if err != nil {
@@ -436,6 +444,7 @@ func SplitLineRanges(html template.HTML, ranges []LineRange) ([][]string, error)
 	}
 	return lineRanges, nil
 }
+<<<<<<< HEAD
 
 func isTreeSitterSupportAvailable(filepath string) bool {
 	for _, extension := range []string{".go"} {
@@ -445,3 +454,5 @@ func isTreeSitterSupportAvailable(filepath string) bool {
 	}
 	return false
 }
+=======
+>>>>>>> ee8b39e06c (handle more nil and move lsif stuff to own files)
