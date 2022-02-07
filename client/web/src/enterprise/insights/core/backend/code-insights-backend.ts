@@ -138,4 +138,9 @@ export interface CodeInsightsBackend {
      * @param query - search page query value
      */
     getResolvedSearchRepositories: (query: string) => Promise<string[]>
+
+    /**
+     * Returns whether Code Insights is licensed
+     */
+    isCodeInsightsLicensed: () => Observable<boolean>
 }

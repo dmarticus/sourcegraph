@@ -15,12 +15,14 @@ import { AuthenticatedUser } from '../../auth'
 import { withAuthenticatedUser } from '../../auth/withAuthenticatedUser'
 import { HeroPage } from '../../components/HeroPage'
 import { CodeInsightsContextProps } from '../../insights/types'
+import { fetchSiteUpdateCheck } from '../../site-admin/backend'
 import { useExperimentalFeatures } from '../../stores'
 
 import { CodeInsightsBackendContext } from './core/backend/code-insights-backend-context'
 import { CodeInsightsGqlBackend } from './core/backend/gql-api/code-insights-gql-backend'
 import { CodeInsightsSettingsCascadeBackend } from './core/backend/setting-based-api/code-insights-setting-cascade-backend'
 import { BetaConfirmationModal } from './modals/BetaConfirmationModal'
+import { GaConfirmationModal } from './modals/GaConfirmationModal'
 import {
     CodeInsightsRootPage,
     CodeInsightsRootPageTab,
@@ -75,9 +77,18 @@ export const InsightsRouter = withAuthenticatedUser<InsightsRouterProps>(props =
 
     const { codeInsightsLandingPage } = useExperimentalFeatures()
 
+    const feb_24_2022 = 1645660800000
+    const isAfterFeb_24_2022 = Date.now() > feb_24_2022
+
     return (
         <CodeInsightsBackendContext.Provider value={api}>
-            <Route path="*" component={BetaConfirmationModal} />
+            <Route path="*">
+                {isAfterFeb_24_2022 ? (
+                    <GaConfirmationModal fetchSiteUpdateCheck={fetchSiteUpdateCheck} />
+                ) : (
+                    <BetaConfirmationModal />
+                )}
+            </Route>
 
             <Switch>
                 <Route path={`${match.url}/create`}>
