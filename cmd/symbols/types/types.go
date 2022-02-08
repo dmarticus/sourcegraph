@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -50,7 +49,7 @@ func LoadCtagsConfig(baseConfig env.BaseConfig) CtagsConfig {
 	return CtagsConfig{
 		Command:            baseConfig.Get("CTAGS_COMMAND", "universal-ctags", "ctags command (should point to universal-ctags executable compiled with JSON and seccomp support)"),
 		PatternLengthLimit: baseConfig.GetInt("CTAGS_PATTERN_LENGTH_LIMIT", "250", "the maximum length of the patterns output by ctags"),
-		LogErrors:          os.Getenv("DEPLOY_TYPE") == "dev",
+		LogErrors:          baseConfig.GetBool("CTAGS_LOG_ERRORS", "false", "log ctags errors to stderr"),
 		DebugLogs:          false,
 		MaxFileSize:        baseConfig.GetInt("CTAGS_MAX_FILE_SIZE", "524288", "skip files larger than this size (in bytes)"),
 		MaxSymbols:         baseConfig.GetInt("CTAGS_MAX_SYMBOLS", "2000", "skip files with more than this many symbols"),
