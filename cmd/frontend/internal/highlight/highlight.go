@@ -123,7 +123,7 @@ var ErrBinary = errors.New("cannot render binary file")
 // In the event the input content is binary, ErrBinary is returned.
 func Code(ctx context.Context, p Params) (h template.HTML, l *lsif_typed.Document, aborted bool, err error) {
 	if Mocks.Code != nil {
-		return "", nil, false, nil
+		return Mocks.Code(p)
 	}
 
 	ctx, errCollector, trace, endObservation := highlightOp.WithErrorsAndLogger(ctx, &err, observation.Args{LogFields: []otlog.Field{

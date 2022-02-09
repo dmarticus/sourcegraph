@@ -97,8 +97,8 @@ line3`
 	highlightedCode := `<table><tbody><tr><td class="line" data-line="1"></td><td class="code"><div><span style="color:#657b83;">line 1
 </span></div></td></tr><tr><td class="line" data-line="2"></td><td class="code"><div><span style="color:#657b83;">line 2
 </span></div></td></tr><tr><td class="line" data-line="3"></td><td class="code"><div><span style="color:#657b83;">line 3</span></div></td></tr></tbody></table>`
-	Mocks.Code = func(p Params) (h template.HTML, aborted bool, err error) {
-		return template.HTML(highlightedCode), false, nil
+	Mocks.Code = func(p Params) (h template.HTML, l *lsif_typed.Document, aborted bool, err error) {
+		return template.HTML(highlightedCode), nil, false, nil
 	}
 	t.Cleanup(ResetMocks)
 
