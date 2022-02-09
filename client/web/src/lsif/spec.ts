@@ -1,11 +1,11 @@
 // TODO: Eventually we'll import the actual lsif-typed protobuf file in this project,
 // but it doesn't make sense to do so right now.
 
-export interface Document {
-    occurrences: Occurrence[]
+export interface JsonDocument {
+    occurrences: JsonOccurrence[]
 }
 
-export interface Occurrence {
+export interface JsonOccurrence {
     range: number[]
     syntaxKind: number
 }
@@ -16,6 +16,25 @@ export class Position {
 
 export class Range {
     constructor(public readonly start: Position, public readonly end: Position) {}
+}
+
+export class Occurrence {
+    public range: Range
+    public kind: SyntaxKind
+
+    constructor(occ: JsonOccurrence) {
+        this.range = new Range(
+            new Position(occ.range[0], occ.range[1]),
+            // Handle 3 vs 4 length meaning different things
+            occ.range.length === 3
+                ? // 3 means same row
+                  new Position(occ.range[0], occ.range[2])
+                : // 4 means could be different rows
+                  new Position(occ.range[2], occ.range[3])
+        )
+
+        this.kind = occ.syntaxKind
+    }
 }
 
 // This is copy & pasted from the enum defined in lsif.proto.
