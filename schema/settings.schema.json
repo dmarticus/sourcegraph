@@ -198,7 +198,7 @@
           }
         },
         "treeSitterEnabled": {
-          "description": "The maximum number of files a repo can have to use case-insensitive fuzzy finding",
+          "description": "Enables tree sitter for enabled filetypes",
           "type": "boolean",
           "default": false,
           "!go": {
