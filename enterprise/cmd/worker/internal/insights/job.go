@@ -9,8 +9,11 @@ import (
 	"github.com/sourcegraph/sourcegraph/cmd/worker/workerdb"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/insights"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/insights/background"
+	"github.com/sourcegraph/sourcegraph/internal/authz"
+	"github.com/sourcegraph/sourcegraph/internal/database"
 	"github.com/sourcegraph/sourcegraph/internal/env"
 	"github.com/sourcegraph/sourcegraph/internal/goroutine"
+	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 type insightsJob struct{}
@@ -29,6 +32,10 @@ func (s *insightsJob) Routines(ctx context.Context) ([]goroutine.BackgroundRouti
 	mainAppDb, err := workerdb.Init()
 	if err != nil {
 		return nil, err
+	}
+	authz.DefaultSubRepoPermsChecker, err = authz.NewSubRepoPermsClient(database.SubRepoPerms(mainAppDb))
+	if err != nil {
+		return nil, errors.Errorf("Failed to create sub-repo client: %v", err)
 	}
 	insightsDB, err := insights.InitializeCodeInsightsDB("worker")
 	if err != nil {
