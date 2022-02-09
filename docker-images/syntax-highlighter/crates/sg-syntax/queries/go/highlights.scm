@@ -1,14 +1,14 @@
 ; ;; Forked from tree-sitter-go
 ; ;; Copyright (c) 2014 Max Brunsfeld (The MIT License)
 
-;; Ignore matches from injections
-(
- (const_spec
-  name: (identifier) @_id
-  value: (expression_list (raw_string_literal) @none))
-
- (#match? @_id ".*Query$")
-)
+;; TODO: We can re-enable when we update SQL a bit more.
+; (
+;  (const_spec
+;   name: (identifier) @_id
+;   value: (expression_list (raw_string_literal) @none))
+; 
+;  (#match? @_id ".*Query$")
+; )
 
 ; Function calls
 

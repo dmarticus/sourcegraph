@@ -198,6 +198,7 @@ mod tests {
         let syntax_set = SyntaxSet::load_defaults_newlines();
         let query = SourcegraphQuery {
             filepath: "foo.cls".to_string(),
+            filetype: None,
             code: "%".to_string(),
             css: false,
             line_length_limit: None,
@@ -213,6 +214,7 @@ mod tests {
         let syntax_set = SyntaxSet::load_defaults_newlines();
         let query = SourcegraphQuery {
             filepath: "foo.cls".to_string(),
+            filetype: None,
             code: "/**".to_string(),
             css: false,
             line_length_limit: None,

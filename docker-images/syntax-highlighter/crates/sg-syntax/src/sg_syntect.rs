@@ -246,6 +246,7 @@ mod tests {
     fn simple_css() {
         let query = SourcegraphQuery {
             filepath: "test.go".to_string(),
+            filetype: None,
             code: "package main\n".to_string(),
             line_length_limit: None,
             extension: String::new(),
@@ -275,6 +276,7 @@ mod tests {
     fn long_line_gets_escaped() {
         let query = SourcegraphQuery {
             filepath: "test.html".to_string(),
+            filetype: None,
             code: "<div>test</div>".to_string(),
             line_length_limit: Some(10),
             extension: String::new(),
@@ -298,6 +300,7 @@ mod tests {
     fn no_highlight_long_line() {
         let query = SourcegraphQuery {
             filepath: "test.go".to_string(),
+            filetype: None,
             code: "package main\n".to_string(),
             line_length_limit: Some(5),
             extension: String::new(),
@@ -321,6 +324,7 @@ mod tests {
     fn multi_line_java() {
         let query = SourcegraphQuery {
             filepath: "test.java".to_string(),
+            filetype: None,
             code: "package com.lwl.boot.model;\n\npublic class Item implements Serializable {}"
                 .to_string(),
             line_length_limit: None,
