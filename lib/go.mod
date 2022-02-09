@@ -17,6 +17,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hexops/autogold v1.3.0
+	github.com/hexops/gotextdiff v1.0.3
 	github.com/hexops/valast v1.4.1 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/json-iterator/go v1.1.12
