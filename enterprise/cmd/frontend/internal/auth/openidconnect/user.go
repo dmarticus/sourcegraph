@@ -71,7 +71,7 @@ func getOrCreateUser(ctx context.Context, db database.DB, p *provider, idToken *
 			AccountID:   idToken.Subject,
 		},
 		ExternalAccountData: data,
-		CreateIfNotExist:    p.config.AllowSignup == nil || *p.config.AllowSignup,
+		CreateIfNotExist:    true,
 	})
 	if err != nil {
 		return nil, safeErrMsg, err
