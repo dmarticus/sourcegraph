@@ -5,7 +5,7 @@ import MenuDownIcon from 'mdi-react/MenuDownIcon'
 import MenuUpIcon from 'mdi-react/MenuUpIcon'
 import OpenInAppIcon from 'mdi-react/OpenInAppIcon'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useHistory, useLocation } from 'react-router'
+import { MemoryRouter, useHistory, useLocation } from 'react-router'
 import { Collapse } from 'reactstrap'
 
 import { HoveredToken } from '@sourcegraph/codeintellify'
@@ -63,11 +63,25 @@ export interface GlobalCoolCodeIntelProps {
 
 type CoolClickedToken = HoveredToken & RepoSpec & RevisionSpec & FileSpec & ResolvedRevisionSpec
 
-interface CoolCodeIntelProps extends Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'> {}
+interface CoolCodeIntelProps extends Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'> {
+    globalHistory: H.History
+}
 
-export const CoolCodeIntel: React.FunctionComponent<CoolCodeIntelProps> = props => (
-    <CoolCodeIntelResizablePanel {...props} />
-)
+export const CoolCodeIntel: React.FunctionComponent<CoolCodeIntelProps> = ({ globalHistory, ...props }) => {
+    const location = useLocation()
+    const { viewState } = parseQueryAndHash(location.search, location.hash)
+
+    // If we don't have '#tab=...' in the URL, we don't need to show the panel.
+    if (!viewState) {
+        return null
+    }
+
+    return (
+        <MemoryRouter initialEntries={[location]}>
+            <CoolCodeIntelResizablePanel {...props} globalHistory={globalHistory} />
+        </MemoryRouter>
+    )
+}
 
 const LAST_TAB_STORAGE_KEY = 'CoolCodeIntel.lastTab'
 
@@ -76,21 +90,23 @@ type CoolCodeIntelTabID = 'references' | 'token' | 'definition'
 interface CoolCodeIntelTab {
     id: CoolCodeIntelTabID
     label: string
-    component: React.ComponentType<CoolCodePanelTabProps>
+    component: React.ComponentType<ReferencesPanelProps>
 }
 
 interface CoolCodePanelTabProps extends CoolCodeIntelProps {
+    clickedToken: CoolClickedToken
+}
+
+interface ReferencesPanelProps extends CoolCodeIntelProps {
     clickedToken?: CoolClickedToken
 }
 
-export const ReferencesPanel: React.FunctionComponent<CoolCodePanelTabProps> = props => {
-    if (!props.clickedToken) {
+export const ReferencesPanel: React.FunctionComponent<ReferencesPanelProps> = ({ clickedToken, ...props }) => {
+    if (!clickedToken) {
         return null
     }
 
-    console.log('references panel', props)
-
-    return <ReferencesList {...props} />
+    return <ReferencesList clickedToken={clickedToken} {...props} />
 }
 
 interface Location {
@@ -152,23 +168,13 @@ interface LocationGroup {
 interface ReferencesListProps extends CoolCodePanelTabProps {}
 
 export const ReferencesList: React.FunctionComponent<ReferencesListProps> = props => {
-    const [activeLocation, setActiveLocation] = useState<Location | undefined>(undefined)
     const [filter, setFilter] = useState<string | undefined>(undefined)
     const debouncedFilter = useDebounce(filter, 150)
+    const history = useHistory()
 
     useEffect(() => {
-        setActiveLocation(undefined)
         setFilter(undefined)
     }, [props.clickedToken])
-
-    const history = useMemo(() => H.createMemoryHistory(), [])
-
-    const onReferenceClick = (location: Location | undefined): void => {
-        if (location) {
-            history.push(location.url)
-        }
-        setActiveLocation(location)
-    }
 
     return (
         <>
@@ -181,29 +187,11 @@ export const ReferencesList: React.FunctionComponent<ReferencesListProps> = prop
             />
             <div className={classNames('align-items-stretch', styles.referencesList)}>
                 <div className={classNames('px-0', styles.referencesSideReferences)}>
-                    <SideReferences
-                        {...props}
-                        activeLocation={activeLocation}
-                        setActiveLocation={onReferenceClick}
-                        filter={debouncedFilter}
-                    />
+                    <SideReferences {...props} filter={debouncedFilter} />
                 </div>
-                {activeLocation !== undefined && (
+                {props.clickedToken !== undefined && (
                     <div className={classNames('px-0 border-left', styles.referencesSideBlob)}>
-                        <CardHeader className={classNames('pl-1', styles.referencesSideBlobFilename)}>
-                            <h4>
-                                {activeLocation.resource.path}{' '}
-                                <Link to={activeLocation.url}>
-                                    <OpenInAppIcon className="icon-inline" />
-                                </Link>
-                            </h4>
-                        </CardHeader>
-                        <SideBlob
-                            {...props}
-                            history={history}
-                            location={history.location}
-                            activeLocation={activeLocation}
-                        />
+                        <SideBlob {...props} />
                     </div>
                 )}
             </div>
@@ -212,8 +200,6 @@ export const ReferencesList: React.FunctionComponent<ReferencesListProps> = prop
 }
 
 interface SideReferencesProps extends ReferencesListProps {
-    setActiveLocation: (location: Location | undefined) => void
-    activeLocation: Location | undefined
     filter: string | undefined
 }
 
@@ -307,12 +293,7 @@ export const SideReferencesLists: React.FunctionComponent<SideReferencesListsPro
                 <h4 className="py-1 px-1 mb-0">Definitions</h4>
             </CardHeader>
             {defs.length > 0 ? (
-                <LocationsList
-                    locations={defs}
-                    activeLocation={props.activeLocation}
-                    setActiveLocation={props.setActiveLocation}
-                    filter={props.filter}
-                />
+                <LocationsList locations={defs} filter={props.filter} />
             ) : (
                 <p className="text-muted my-1 pl-2">
                     {props.filter ? (
@@ -328,12 +309,7 @@ export const SideReferencesLists: React.FunctionComponent<SideReferencesListsPro
                 <h4 className="py-1 px-1 mb-0">References</h4>
             </CardHeader>
             {references_.length > 0 ? (
-                <LocationsList
-                    locations={references_}
-                    activeLocation={props.activeLocation}
-                    setActiveLocation={props.setActiveLocation}
-                    filter={props.filter}
-                />
+                <LocationsList locations={references_} filter={props.filter} />
             ) : (
                 <p className="text-muted pl-2">
                     {props.filter ? (
@@ -350,21 +326,14 @@ export const SideReferencesLists: React.FunctionComponent<SideReferencesListsPro
                     <CardHeader>
                         <h4 className="py-1 px-1 mb-0">Implementations</h4>
                     </CardHeader>
-                    <LocationsList
-                        locations={impls}
-                        activeLocation={props.activeLocation}
-                        setActiveLocation={props.setActiveLocation}
-                        filter={props.filter}
-                    />
+                    <LocationsList locations={impls} filter={props.filter} />
                 </>
             )}
         </>
     )
 }
 
-interface SideBlobProps extends CoolCodePanelTabProps {
-    activeLocation: Location
-}
+interface SideBlobProps extends CoolCodePanelTabProps {}
 
 export const SideBlob: React.FunctionComponent<SideBlobProps> = props => {
     const { data, error, loading } = useQuery<
@@ -372,9 +341,9 @@ export const SideBlob: React.FunctionComponent<SideBlobProps> = props => {
         CoolCodeIntelHighlightedBlobVariables
     >(FETCH_HIGHLIGHTED_BLOB, {
         variables: {
-            repository: props.activeLocation.resource.repository.name,
-            commit: props.activeLocation.resource.commit.oid,
-            path: props.activeLocation.resource.path,
+            repository: props.clickedToken.repoName,
+            commit: props.clickedToken.commitID,
+            path: props.clickedToken.filePath,
         },
         // Cache this data but always re-request it in the background when we revisit
         // this page to pick up newer changes.
@@ -389,7 +358,7 @@ export const SideBlob: React.FunctionComponent<SideBlobProps> = props => {
                 <LoadingSpinner inline={false} className="mx-auto my-4" />
                 <p className="text-muted text-center">
                     <i>
-                        Loading <code>{props.activeLocation.resource.path}</code>...
+                        Loading <code>{props.clickedToken.filePath}</code>...
                     </i>
                 </p>
             </>
@@ -406,41 +375,48 @@ export const SideBlob: React.FunctionComponent<SideBlobProps> = props => {
         return <>Nothing found</>
     }
 
-    const { html, aborted } = data?.repository?.commit?.blob?.highlight
+    const {
+        content,
+        url,
+        highlight: { html, aborted },
+    } = data?.repository?.commit?.blob
+
     if (aborted) {
         return (
             <p className="text-warning text-center">
                 <i>
-                    Highlighting <code>{props.activeLocation.resource.path}</code> failed
+                    Highlighting <code>{props.clickedToken.filePath}</code> failed
                 </i>
             </p>
         )
     }
 
     return (
-        <Blob
-            {...props}
-            onTokenClick={(token: CoolClickedToken) => {
-                console.log('Called with', token)
-                console.log(props.onTokenClick)
-                if (props.onTokenClick) {
-                    console.log('calling onTokenClick!!')
-                    props.onTokenClick(token)
-                }
-            }}
-            disableStatusBar={true}
-            wrapCode={true}
-            className={styles.referencesSideBlobCode}
-            blobInfo={{
-                content: props.activeLocation.resource.content,
-                html,
-                filePath: props.activeLocation.resource.path,
-                repoName: props.activeLocation.resource.repository.name,
-                commitID: props.activeLocation.resource.commit.oid,
-                revision: props.activeLocation.resource.commit.oid,
-                mode: 'lspmode',
-            }}
-        />
+        <>
+            <CardHeader className={classNames('pl-1', styles.referencesSideBlobFilename)}>
+                <h4>
+                    {props.clickedToken.filePath}{' '}
+                    <Link to={url}>
+                        <OpenInAppIcon className="icon-inline" />
+                    </Link>
+                </h4>
+            </CardHeader>
+            <Blob
+                {...props}
+                disableStatusBar={true}
+                wrapCode={true}
+                className={styles.referencesSideBlobCode}
+                blobInfo={{
+                    content,
+                    html,
+                    filePath: props.clickedToken.filePath,
+                    repoName: props.clickedToken.repoName,
+                    commitID: props.clickedToken.commitID,
+                    revision: props.clickedToken.revision,
+                    mode: 'lspmode',
+                }}
+            />
+        </>
     )
 }
 
@@ -470,10 +446,8 @@ const buildFileURL = (location: Location): string => {
 
 const LocationsList: React.FunctionComponent<{
     locations: Location[]
-    activeLocation?: Location
-    setActiveLocation: (reference: Location | undefined) => void
     filter: string | undefined
-}> = ({ locations, activeLocation, setActiveLocation, filter }) => {
+}> = ({ locations, filter }) => {
     const byFile: Record<string, Location[]> = {}
     for (const location of locations) {
         if (byFile[location.resource.path] === undefined) {
@@ -516,8 +490,6 @@ const LocationsList: React.FunctionComponent<{
                 <RepoReferenceGroup
                     key={repoReferenceGroup.repoName}
                     repoReferenceGroup={repoReferenceGroup}
-                    activeLocation={activeLocation}
-                    setActiveLocation={setActiveLocation}
                     getLineContent={getLineContent}
                     filter={filter}
                 />
@@ -528,11 +500,9 @@ const LocationsList: React.FunctionComponent<{
 
 const RepoReferenceGroup: React.FunctionComponent<{
     repoReferenceGroup: RepoLocationGroup
-    activeLocation?: Location
-    setActiveLocation: (reference: Location | undefined) => void
     getLineContent: (location: Location) => string
     filter: string | undefined
-}> = ({ repoReferenceGroup, setActiveLocation, getLineContent, activeLocation, filter }) => {
+}> = ({ repoReferenceGroup, getLineContent, filter }) => {
     const [isOpen, setOpen] = useState<boolean>(true)
     const handleOpen = useCallback(() => setOpen(!isOpen), [isOpen])
 
@@ -560,8 +530,6 @@ const RepoReferenceGroup: React.FunctionComponent<{
                     <ReferenceGroup
                         key={group.path + group.repoName}
                         group={group}
-                        activeLocation={activeLocation}
-                        setActiveLocation={setActiveLocation}
                         getLineContent={getLineContent}
                         filter={filter}
                     />
@@ -573,11 +541,9 @@ const RepoReferenceGroup: React.FunctionComponent<{
 
 const ReferenceGroup: React.FunctionComponent<{
     group: LocationGroup
-    activeLocation?: Location
-    setActiveLocation: (reference: Location | undefined) => void
     getLineContent: (reference: Location) => string
     filter: string | undefined
-}> = ({ group, setActiveLocation: setActiveLocation, getLineContent, activeLocation, filter }) => {
+}> = ({ group, getLineContent, filter }) => {
     const [isOpen, setOpen] = useState<boolean>(true)
     const handleOpen = useCallback(() => setOpen(!isOpen), [isOpen])
 
@@ -617,22 +583,13 @@ const ReferenceGroup: React.FunctionComponent<{
             <Collapse id={group.repoName + group.path} isOpen={isOpen} className="ml-2">
                 <ul className="list-unstyled pl-3 py-1 mb-0">
                     {group.locations.map(reference => {
-                        const className =
-                            activeLocation && activeLocation.url === reference.url
-                                ? styles.coolCodeIntelReferenceActive
-                                : ''
+                        // TOOD: Fix comparisons from reference to clickedToken
+                        const className = reference.url === 'fixme' ? styles.coolCodeIntelReferenceActive : ''
 
                         return (
                             <li key={reference.url} className={classNames('border-0 rounded-0', className)}>
                                 <div>
-                                    <Link
-                                        onClick={event => {
-                                            event.preventDefault()
-                                            setActiveLocation(reference)
-                                        }}
-                                        to={reference.url}
-                                        className={styles.referenceLink}
-                                    >
+                                    <Link to={reference.url} className={styles.referenceLink}>
                                         <span>
                                             {reference.range?.start?.line}
                                             {': '}
@@ -725,8 +682,12 @@ export function locationWithoutViewState(location: H.Location): H.LocationDescri
 }
 
 export const CoolCodeIntelResizablePanel: React.FunctionComponent<CoolCodeIntelProps> = props => {
-    const history = useHistory()
     const location = useLocation()
+    const history = useHistory()
+
+    // TODO: Implement some UI that tracks historical references similar to cs.google
+    console.log('Current reference stack:')
+    console.log(JSON.stringify(history.entries, null, 2))
 
     // Experimental reference panel
     const [token, setToken] = useState<CoolClickedToken>()
@@ -736,9 +697,9 @@ export const CoolCodeIntelResizablePanel: React.FunctionComponent<CoolCodeIntelP
         // Signal up that panel is closed
         setToken(undefined)
         // Remove 'viewState' from location
-        history.push(locationWithoutViewState(location))
+        props.globalHistory.push(locationWithoutViewState(location))
         // close(true)
-    }, [history, location])
+    }, [props.globalHistory, location])
 
     useEffect(() => {
         if (token) {
@@ -751,49 +712,27 @@ export const CoolCodeIntelResizablePanel: React.FunctionComponent<CoolCodeIntelP
     }
 
     const { hash, pathname, search } = location
-    const { line, character, viewState } = parseQueryAndHash(search, hash)
+    const { line, character } = parseQueryAndHash(search, hash)
 
-    // If we don't have a token that someone clicked on and we don't have
-    // '#tab=...' in the URL, we don't need to show the panel.
-    if (!token && !viewState) {
+    const { filePath, repoName } = parseBrowserRepoURL(pathname)
+
+    const haveFileLocation = line && character && filePath
+
+    if (!haveFileLocation) {
         return null
     }
 
-    const { filePath, repoName, revision, commitID } = parseBrowserRepoURL(pathname)
-
-    const haveFileLocationAndViewState =
-        line &&
-        character &&
-        filePath &&
-        viewState &&
-        (viewState === 'references' || viewState.startsWith('implementations_'))
-
-    // If we have info in URL and no clicked token, we use what's in the URL as token
-    if (haveFileLocationAndViewState && !token) {
-        const urlBasedToken = {
-            repoName,
-            line,
-            character,
-            filePath,
-        }
-        if (commitID === undefined || revision === undefined) {
-            return (
-                <CoolCodeIntelPanelUrlBased
-                    {...props}
-                    {...urlBasedToken}
-                    handlePanelClose={handlePanelClose}
-                    onTokenClick={setToken}
-                />
-            )
-        }
-
-        setToken({ ...urlBasedToken, revision, commitID })
+    const urlBasedToken = {
+        repoName,
+        line,
+        character,
+        filePath,
     }
 
     return (
-        <ResizableCoolCodeIntelPanel
+        <CoolCodeIntelPanelUrlBased
             {...props}
-            clickedToken={token}
+            {...urlBasedToken}
             handlePanelClose={handlePanelClose}
             onTokenClick={setToken}
         />
