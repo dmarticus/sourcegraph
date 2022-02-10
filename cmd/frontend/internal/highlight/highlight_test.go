@@ -16,7 +16,7 @@ import (
 func TestDeserialize(t *testing.T) {
 	d := new(lsif_typed.Document)
 	d.Occurrences = append(d.Occurrences, &lsif_typed.Occurrence{
-		SyntaxKind: lsif_typed.SyntaxKind_AttributeIdentifier,
+		SyntaxKind: lsif_typed.SyntaxKind_IdentifierAttribute,
 	})
 
 	fmt.Println("========")

@@ -46,7 +46,7 @@ type highlightedFileResolver struct {
 
 func (h *highlightedFileResolver) Aborted() bool { return h.aborted }
 func (h *highlightedFileResolver) HTML() string  { return string(h.html) }
-func (h *highlightedFileResolver) LSIF() string  { return string(h.lsif) }
+func (h *highlightedFileResolver) LSIF() string  { return h.lsif }
 func (h *highlightedFileResolver) LineRanges(args *struct{ Ranges []highlight.LineRange }) ([][]string, error) {
 	return highlight.SplitLineRanges(h.html, args.Ranges)
 }

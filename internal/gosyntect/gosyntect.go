@@ -11,7 +11,7 @@ import (
 
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
+	"github.com/sourcegraph/sourcegraph/lib/errors"
 )
 
 // Query represents a code highlighting query to the syntect_server.
@@ -192,7 +192,7 @@ func (c *Client) Highlight(ctx context.Context, q *Query, useTreeSitter bool) (*
 		case "hss_worker_timeout":
 			err = ErrHSSWorkerTimeout
 		default:
-			err = fmt.Errorf("unknown error=%q code=%q", r.Error, r.Code)
+			err = errors.Errorf("unknown error=%q code=%q", r.Error, r.Code)
 		}
 		return nil, errors.Wrap(err, c.syntectServer)
 	}
