@@ -6,7 +6,12 @@ set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"/../..
 
 set +e
-OUT=$(shfmt -d .)
+
+# Ignore bash scripts in git submodules
+OUT=$(
+  shfmt -d \
+    $(shfmt -f . | grep -v docker-images/syntax-highlighter/crates/)
+)
 EXIT_CODE=$?
 set -e
 echo -e "$OUT"

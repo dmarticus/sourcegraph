@@ -25,4 +25,3 @@ echo "======================"
 echo "NOTE:"
 echo "If updating SyntaxKind, make sure to update: client/web/src/lsif/spec.ts"
 echo "======================"
-
