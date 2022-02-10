@@ -1,9 +1,11 @@
 import classNames from 'classnames'
 import PlusIcon from 'mdi-react/PlusIcon'
-import React from 'react'
-import { noop } from 'rxjs'
+import React, { useMemo } from 'react'
+import { noop, of } from 'rxjs'
 
-import { Button, Card, Link } from '@sourcegraph/wildcard'
+import { SearchPatternType, SearchVersion } from '@sourcegraph/shared/src/schema'
+import { messageHandlers, search } from '@sourcegraph/shared/src/search/stream'
+import { Button, Card, Link, useObservable } from '@sourcegraph/wildcard'
 
 import { FormInput } from '../../../../components/form/form-input/FormInput'
 import { useField } from '../../../../components/form/hooks/useField'
@@ -65,6 +67,31 @@ export const DynamicCodeInsightExample: React.FunctionComponent<DynamicCodeInsig
     })
 
     const hasValidLivePreview = repositories.meta.validState === 'VALID' && query.meta.validState === 'VALID'
+
+    const result = useObservable(
+        useMemo(
+            () =>
+                search(
+                    of('select:repo TODO count:1'),
+                    {
+                        version: SearchVersion.V2,
+                        caseSensitive: false,
+                        patternType: SearchPatternType.literal,
+                        trace: undefined,
+                    },
+                    messageHandlers
+                ),
+            []
+        )
+    )
+
+    if (result?.type === 'matches') {
+        const repository = result.data[0].repository
+        if (repositories.input.value !== repository) {
+            console.log('🚀 ~ file: DynamicCodeInsightExample.tsx ~ line 81 ~ result', repository)
+            repositories.meta.setState(state => ({ ...state, value: repository }))
+        }
+    }
 
     return (
         <Card {...props} className={classNames(styles.wrapper, props.className)}>
