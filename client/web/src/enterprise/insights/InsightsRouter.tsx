@@ -15,7 +15,6 @@ import { AuthenticatedUser } from '../../auth'
 import { withAuthenticatedUser } from '../../auth/withAuthenticatedUser'
 import { HeroPage } from '../../components/HeroPage'
 import { CodeInsightsContextProps } from '../../insights/types'
-import { fetchSiteUpdateCheck } from '../../site-admin/backend'
 import { useExperimentalFeatures } from '../../stores'
 
 import { CodeInsightsBackendContext } from './core/backend/code-insights-backend-context'
@@ -82,13 +81,7 @@ export const InsightsRouter = withAuthenticatedUser<InsightsRouterProps>(props =
 
     return (
         <CodeInsightsBackendContext.Provider value={api}>
-            <Route path="*">
-                {isAfterFeb_24_2022 ? (
-                    <GaConfirmationModal fetchSiteUpdateCheck={fetchSiteUpdateCheck} />
-                ) : (
-                    <BetaConfirmationModal />
-                )}
-            </Route>
+            <Route path="*" component={isAfterFeb_24_2022 ? GaConfirmationModal : BetaConfirmationModal} />
 
             <Switch>
                 <Route path={`${match.url}/create`}>
