@@ -1,6 +1,6 @@
 use std::fs;
 
-use sg_syntax::{determine_language, dump_document, lsif_index};
+use sg_syntax::{dump_document, lsif_index};
 
 fn main() {
     if let Some(path) = std::env::args().nth(1) {

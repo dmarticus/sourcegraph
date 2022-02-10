@@ -14,8 +14,16 @@ import (
 )
 
 func TestDeserialize(t *testing.T) {
-	d := "EggIAAgACAQoBxIICAAIBQgGKAgSBggACAYIBxIGCAAIBwgIEgYIAAgJCAoSBggACAoICw=="
-	data, _ := base64.StdEncoding.DecodeString(d)
+	d := new(lsif_typed.Document)
+	d.Occurrences = append(d.Occurrences, &lsif_typed.Occurrence{
+		SyntaxKind: lsif_typed.SyntaxKind_AttributeIdentifier,
+	})
+
+	fmt.Println("========")
+	marshaled, _ := proto.Marshal(d)
+	fmt.Println("String", marshaled)
+
+	data, _ := base64.StdEncoding.DecodeString(base64.StdEncoding.EncodeToString(marshaled))
 	m := new(lsif_typed.Document)
 	proto.Unmarshal(data, m)
 	fmt.Println(m)

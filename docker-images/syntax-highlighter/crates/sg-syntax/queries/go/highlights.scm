@@ -12,6 +12,9 @@
 
 ; Function calls
 
+(parameter_declaration (identifier) @variable.parameter)
+(variadic_parameter_declaration (identifier) @variable.parameter)
+
 ; (call_expression
 ;  function: (selector_expression
 ;    operand: (identifier)
@@ -124,48 +127,48 @@
 ;; Builtin types
 
 ((type_identifier) @type.builtin
-(#any-of? @type.builtin
-          "bool"
-          "byte"
-          "complex128"
-          "complex64"
-          "error"
-          "float32"
-          "float64"
-          "int"
-          "int16"
-          "int32"
-          "int64"
-          "int8"
-          "rune"
-          "string"
-          "uint"
-          "uint16"
-          "uint32"
-          "uint64"
-          "uint8"
-          "uintptr"))
+  (#any-of? @type.builtin
+            "bool"
+            "byte"
+            "complex128"
+            "complex64"
+            "error"
+            "float32"
+            "float64"
+            "int"
+            "int16"
+            "int32"
+            "int64"
+            "int8"
+            "rune"
+            "string"
+            "uint"
+            "uint16"
+            "uint32"
+            "uint64"
+            "uint8"
+            "uintptr"))
 
 
 ;; Builtin functions
 
 ((identifier) @function.builtin
-(#any-of? @function.builtin
-          "append"
-          "cap"
-          "close"
-          "complex"
-          "copy"
-          "delete"
-          "imag"
-          "len"
-          "make"
-          "new"
-          "panic"
-          "print"
-          "println"
-          "real"
-          "recover"))
+  (#any-of? @function.builtin
+            "append"
+            "cap"
+            "close"
+            "complex"
+            "copy"
+            "delete"
+            "imag"
+            "len"
+            "make"
+            "new"
+            "panic"
+            "print"
+            "println"
+            "real"
+            "recover"))
 
 
 ; Delimiters
@@ -216,16 +219,15 @@
 ;;
 ; Identifiers
 
-(type_identifier) @type
-; (field_identifier) @property
-(identifier) @variable
 (package_identifier) @variable.module
+(type_identifier) @type
+(identifier) @variable
 
-(parameter_declaration (identifier) @parameter)
-(variadic_parameter_declaration (identifier) @parameter)
+; (field_identifier) @property
 
-((identifier) @constant
-(#eq? @constant "_"))
+(
+ (identifier) @constant
+  (#eq? @constant "_"))
 
 ; ((identifier) @constant
 ;  (#vim-match? @constant "^[A-Z][A-Z\\d_]+$"))
