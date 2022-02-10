@@ -1,0 +1,3 @@
+# docstring: hello
+definition bark() implementation A type_definition B references C
+reference hello
