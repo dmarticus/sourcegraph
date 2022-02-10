@@ -61,11 +61,9 @@ export interface GlobalCoolCodeIntelProps {
     onTokenClick?: (clickedToken: CoolClickedToken) => void
 }
 
-export type CoolClickedToken = HoveredToken & RepoSpec & RevisionSpec & FileSpec & ResolvedRevisionSpec
+type CoolClickedToken = HoveredToken & RepoSpec & RevisionSpec & FileSpec & ResolvedRevisionSpec
 
-interface CoolCodeIntelProps extends Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'> {
-    clickedToken?: CoolClickedToken
-}
+interface CoolCodeIntelProps extends Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'> {}
 
 export const CoolCodeIntel: React.FunctionComponent<CoolCodeIntelProps> = props => (
     <CoolCodeIntelResizablePanel {...props} />
@@ -78,15 +76,21 @@ type CoolCodeIntelTabID = 'references' | 'token' | 'definition'
 interface CoolCodeIntelTab {
     id: CoolCodeIntelTabID
     label: string
-    component: React.ComponentType<CoolCodeIntelProps>
+    component: React.ComponentType<CoolCodePanelTabProps>
 }
 
-export const ReferencesPanel: React.FunctionComponent<CoolCodeIntelProps> = props => {
+interface CoolCodePanelTabProps extends CoolCodeIntelProps {
+    clickedToken?: CoolClickedToken
+}
+
+export const ReferencesPanel: React.FunctionComponent<CoolCodePanelTabProps> = props => {
     if (!props.clickedToken) {
         return null
     }
 
-    return <ReferencesList clickedToken={props.clickedToken} {...props} />
+    console.log('references panel', props)
+
+    return <ReferencesList {...props} />
 }
 
 interface Location {
@@ -145,11 +149,9 @@ interface LocationGroup {
     locations: Location[]
 }
 
-export const ReferencesList: React.FunctionComponent<
-    {
-        clickedToken: CoolClickedToken
-    } & Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'>
-> = props => {
+interface ReferencesListProps extends CoolCodePanelTabProps {}
+
+export const ReferencesList: React.FunctionComponent<ReferencesListProps> = props => {
     const [activeLocation, setActiveLocation] = useState<Location | undefined>(undefined)
     const [filter, setFilter] = useState<string | undefined>(undefined)
     const debouncedFilter = useDebounce(filter, 150)
@@ -209,14 +211,13 @@ export const ReferencesList: React.FunctionComponent<
     )
 }
 
-export const SideReferences: React.FunctionComponent<
-    {
-        clickedToken: CoolClickedToken
-        setActiveLocation: (location: Location | undefined) => void
-        activeLocation: Location | undefined
-        filter: string | undefined
-    } & Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'>
-> = props => {
+interface SideReferencesProps extends ReferencesListProps {
+    setActiveLocation: (location: Location | undefined) => void
+    activeLocation: Location | undefined
+    filter: string | undefined
+}
+
+export const SideReferences: React.FunctionComponent<SideReferencesProps> = props => {
     const { data, error, loading } = useQuery<CoolCodeIntelReferencesResult, CoolCodeIntelReferencesVariables>(
         FETCH_REFERENCES_QUERY,
         {
@@ -278,21 +279,17 @@ interface LSIFLocationResult {
     pageInfo: { __typename?: 'PageInfo'; endCursor: Maybe<string> }
 }
 
-export const SideReferencesLists: React.FunctionComponent<
-    {
-        clickedToken: CoolClickedToken
-        setActiveLocation: (location: Location | undefined) => void
-        activeLocation: Location | undefined
-        filter: string | undefined
-        references: LSIFLocationResult
-        definitions: Omit<LSIFLocationResult, 'pageInfo'>
-        implementations: LSIFLocationResult
-        hover: Maybe<{
-            __typename?: 'Hover'
-            markdown: { __typename?: 'Markdown'; html: string; text: string }
-        }>
-    } & Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'>
-> = props => {
+interface SideReferencesListsProps extends SideReferencesProps {
+    references: LSIFLocationResult
+    definitions: Omit<LSIFLocationResult, 'pageInfo'>
+    implementations: LSIFLocationResult
+    hover: Maybe<{
+        __typename?: 'Hover'
+        markdown: { __typename?: 'Markdown'; html: string; text: string }
+    }>
+}
+
+export const SideReferencesLists: React.FunctionComponent<SideReferencesListsProps> = props => {
     const { references, definitions, implementations, hover } = props
     const references_: Location[] = useMemo(() => references.nodes.map(buildLocation), [references])
     const defs: Location[] = useMemo(() => definitions.nodes.map(buildLocation), [definitions])
@@ -365,11 +362,11 @@ export const SideReferencesLists: React.FunctionComponent<
     )
 }
 
-export const SideBlob: React.FunctionComponent<
-    {
-        activeLocation: Location
-    } & Omit<BlobProps, 'className' | 'wrapCode' | 'blobInfo' | 'disableStatusBar'>
-> = props => {
+interface SideBlobProps extends CoolCodePanelTabProps {
+    activeLocation: Location
+}
+
+export const SideBlob: React.FunctionComponent<SideBlobProps> = props => {
     const { data, error, loading } = useQuery<
         CoolCodeIntelHighlightedBlobResult,
         CoolCodeIntelHighlightedBlobVariables
@@ -424,7 +421,10 @@ export const SideBlob: React.FunctionComponent<
         <Blob
             {...props}
             onTokenClick={(token: CoolClickedToken) => {
+                console.log('Called with', token)
+                console.log(props.onTokenClick)
                 if (props.onTokenClick) {
+                    console.log('calling onTokenClick!!')
                     props.onTokenClick(token)
                 }
             }}
@@ -651,9 +651,9 @@ const ReferenceGroup: React.FunctionComponent<{
 
 const TABS: CoolCodeIntelTab[] = [{ id: 'references', label: 'References', component: ReferencesPanel }]
 
-export const ResizableCoolCodeIntelPanel = React.memo<
-    CoolCodeIntelProps & { handlePanelClose: (closed: boolean) => void }
->(props => (
+interface ResizableCoolCodeIntelPanelProps extends CoolCodeIntelPanelProps, CoolCodePanelTabProps {}
+
+export const ResizableCoolCodeIntelPanel = React.memo<ResizableCoolCodeIntelPanelProps>(props => (
     <Resizable
         className={styles.resizablePanel}
         handlePosition="top"
@@ -663,53 +663,52 @@ export const ResizableCoolCodeIntelPanel = React.memo<
     />
 ))
 
-export const CoolCodeIntelPanel = React.memo<CoolCodeIntelProps & { handlePanelClose: (closed: boolean) => void }>(
-    props => {
-        const [tabIndex, setTabIndex] = useLocalStorage(LAST_TAB_STORAGE_KEY, 0)
-        const handleTabsChange = useCallback((index: number) => setTabIndex(index), [setTabIndex])
+interface CoolCodeIntelPanelProps extends CoolCodeIntelProps {
+    handlePanelClose: (closed: boolean) => void
+}
 
-        return (
-            <Tabs size="medium" className={styles.panel} index={tabIndex} onChange={handleTabsChange}>
-                <div
-                    className={classNames(
-                        'tablist-wrapper d-flex justify-content-between sticky-top',
-                        styles.panelHeader
-                    )}
-                >
-                    <TabList>
-                        <div className="d-flex w-100">
-                            {TABS.map(({ label, id }) => (
-                                <Tab key={id}>
-                                    <span className="tablist-wrapper--tab-label" role="none">
-                                        {label}
-                                    </span>
-                                </Tab>
-                            ))}
-                        </div>
-                    </TabList>
-                    <div className="align-items-center d-flex">
-                        <Button
-                            onClick={() => props.handlePanelClose(true)}
-                            className={classNames('btn-icon ml-2', styles.dismissButton)}
-                            title="Close panel"
-                            data-tooltip="Close panel"
-                            data-placement="left"
-                        >
-                            <CloseIcon className="icon-inline" />
-                        </Button>
+export const CoolCodeIntelPanel = React.memo<CoolCodeIntelPanelProps>(props => {
+    const [tabIndex, setTabIndex] = useLocalStorage(LAST_TAB_STORAGE_KEY, 0)
+    const handleTabsChange = useCallback((index: number) => setTabIndex(index), [setTabIndex])
+
+    return (
+        <Tabs size="medium" className={styles.panel} index={tabIndex} onChange={handleTabsChange}>
+            <div
+                className={classNames('tablist-wrapper d-flex justify-content-between sticky-top', styles.panelHeader)}
+            >
+                <TabList>
+                    <div className="d-flex w-100">
+                        {TABS.map(({ label, id }) => (
+                            <Tab key={id}>
+                                <span className="tablist-wrapper--tab-label" role="none">
+                                    {label}
+                                </span>
+                            </Tab>
+                        ))}
                     </div>
+                </TabList>
+                <div className="align-items-center d-flex">
+                    <Button
+                        onClick={() => props.handlePanelClose(true)}
+                        className={classNames('btn-icon ml-2', styles.dismissButton)}
+                        title="Close panel"
+                        data-tooltip="Close panel"
+                        data-placement="left"
+                    >
+                        <CloseIcon className="icon-inline" />
+                    </Button>
                 </div>
-                <TabPanels>
-                    {TABS.map(tab => (
-                        <TabPanel key={tab.id}>
-                            <tab.component {...props} />
-                        </TabPanel>
-                    ))}
-                </TabPanels>
-            </Tabs>
-        )
-    }
-)
+            </div>
+            <TabPanels>
+                {TABS.map(tab => (
+                    <TabPanel key={tab.id}>
+                        <tab.component {...props} />
+                    </TabPanel>
+                ))}
+            </TabPanels>
+        </Tabs>
+    )
+})
 
 export function locationWithoutViewState(location: H.Location): H.LocationDescriptorObject {
     const parsedQuery = parseQueryAndHash(location.search, location.hash)
@@ -778,7 +777,14 @@ export const CoolCodeIntelResizablePanel: React.FunctionComponent<CoolCodeIntelP
             filePath,
         }
         if (commitID === undefined || revision === undefined) {
-            return <CoolCodeIntelPanelUrlBased {...props} {...urlBasedToken} handlePanelClose={handlePanelClose} />
+            return (
+                <CoolCodeIntelPanelUrlBased
+                    {...props}
+                    {...urlBasedToken}
+                    handlePanelClose={handlePanelClose}
+                    onTokenClick={setToken}
+                />
+            )
         }
 
         setToken({ ...urlBasedToken, revision, commitID })
