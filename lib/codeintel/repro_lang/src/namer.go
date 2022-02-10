@@ -27,7 +27,7 @@ func (d *sourceFile) resolveDefinitions(context *globalContext) {
 			symbol = "ERROR_DUPLICATE_DEFINITION"
 		} else {
 			symbol = fmt.Sprintf(
-				"repro_lang %v %v %v/%v.",
+				"repro_lang repro_manager %v %v %v/%v",
 				context.packageInformation.name,
 				context.packageInformation.version,
 				d.relativePath,

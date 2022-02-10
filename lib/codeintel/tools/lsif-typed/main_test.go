@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,14 +16,7 @@ import (
 	repro_lang "github.com/sourcegraph/sourcegraph/lib/codeintel/repro_lang/src"
 )
 
-func isUpdateSnapshots() bool {
-	for _, arg := range os.Args {
-		if arg == "-update-snapshots" {
-			return true
-		}
-	}
-	return false
-}
+var update = flag.Bool("update", false, "update .golden files, removing unused if running all tests")
 
 func TestLsifTyped(t *testing.T) {
 	cwd, err := os.Getwd()
@@ -31,6 +25,12 @@ func TestLsifTyped(t *testing.T) {
 	}
 	inputDirectory := filepath.Join(cwd, "snapshots-input")
 	outputDirectory := filepath.Join(cwd, "snapshots-output")
+	if *update {
+		err = os.RemoveAll(outputDirectory)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	testCases, err := os.ReadDir(inputDirectory)
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +61,7 @@ func TestLsifTyped(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			fmt.Println(index)
 			lsif, err := reader.ConvertTypedIndexToGraphIndex(index)
 			if err != nil {
 				t.Fatal(err)
@@ -70,12 +71,12 @@ func TestLsifTyped(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if isUpdateSnapshots() {
-				err = os.MkdirAll(filepath.Dir(outputFile), 0644)
+			if *update {
+				err = os.MkdirAll(filepath.Dir(outputFile), 0755)
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = os.WriteFile(outputFile, obtained.Bytes(), 0644)
+				err = os.WriteFile(outputFile, obtained.Bytes(), 0755)
 				if err != nil {
 					t.Fatal(err)
 				}
