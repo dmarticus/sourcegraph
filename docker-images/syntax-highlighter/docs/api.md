@@ -15,7 +15,6 @@
     - `{"error": "resource not found", "code": "resource_not_found"}`
 - `GET` to `/health` to receive an `OK` health check response / ensure the service is alive.
 
-
 ## `/lsif`
 
 TODO

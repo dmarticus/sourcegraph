@@ -25,7 +25,6 @@ By default on startup, `syntect_server` will list all features (themes + file ty
 3. Use `cargo run` to download dependencies + compile + run the server.
 4. Use `cargo build --release` to create release binaries (see `./target/release/`)
 
-
 ## Building docker image
 
 `./build.sh` will build your current repository checkout into a final Docker image.

@@ -129,7 +129,7 @@ export const BlobPage: React.FunctionComponent<Props> = props => {
         }, [filePath, revision, repoName, repoUrl, props.telemetryService])
     )
 
-    const settings = getExperimentalFeatures(props.settingsCascade.final);
+    const settings = getExperimentalFeatures(props.settingsCascade.final)
     const treeSitterEnabled = settings.treeSitterEnabled ? true : false
 
     // Bundle latest blob with all other file info to pass to `Blob`
