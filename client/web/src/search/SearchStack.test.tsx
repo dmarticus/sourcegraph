@@ -17,13 +17,22 @@ describe('Search Stack', () => {
     afterEach(cleanup)
 
     const mockEntries: SearchStackEntry[] = [
-        { id: 0, type: 'search', query: 'TODO', caseSensitive: false, patternType: SearchPatternType.literal },
-        { id: 1, type: 'file', path: 'path/to/file', repo: 'test', revision: 'master', lineRange: null },
+        { type: 'search', query: 'TODO', caseSensitive: false, patternType: SearchPatternType.literal },
+        { type: 'file', path: 'path/to/file', repo: 'test', revision: 'master', lineRange: null },
     ]
 
     describe('inital state', () => {
         it('does not render anything if feature is disabled', () => {
             useExperimentalFeatures.setState({ enableSearchStack: false })
+
+            renderSearchStack()
+
+            expect(screen.queryByRole('button', { name: 'Open search session' })).not.toBeInTheDocument()
+        })
+
+        it('does not render anything if there is no previous session', () => {
+            useExperimentalFeatures.setState({ enableSearchStack: true })
+            useSearchStackState.setState({ canRestoreSession: false })
 
             renderSearchStack()
 
@@ -60,14 +69,8 @@ describe('Search Stack', () => {
             useExperimentalFeatures.setState({ enableSearchStack: true })
             useSearchStackState.setState({
                 entries: [
-                    {
-                        id: 0,
-                        type: 'search',
-                        query: 'TODO',
-                        caseSensitive: false,
-                        patternType: SearchPatternType.literal,
-                    },
-                    { id: 1, type: 'file', path: 'path/to/file', repo: 'test', revision: 'master', lineRange: null },
+                    { type: 'search', query: 'TODO', caseSensitive: false, patternType: SearchPatternType.literal },
+                    { type: 'file', path: 'path/to/file', repo: 'test', revision: 'master', lineRange: null },
                 ],
             })
         })
@@ -89,9 +92,8 @@ describe('Search Stack', () => {
 
             const entryLinks = screen.queryAllByRole('link')
 
-            // Entries are in reverse order
-            expect(entryLinks[0]).toHaveAttribute('href', '/test@master/-/blob/path/to/file')
-            expect(entryLinks[1]).toHaveAttribute('href', '/search?q=TODO&patternType=literal')
+            expect(entryLinks[0]).toHaveAttribute('href', '/search?q=TODO&patternType=literal')
+            expect(entryLinks[1]).toHaveAttribute('href', '/test@master/-/blob/path/to/file')
         })
 
         it('creates notebooks', () => {

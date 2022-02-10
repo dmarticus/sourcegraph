@@ -13,10 +13,10 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/output"
 )
 
-func DownTo(commandName string, factory RunnerFactory, out *output.Output) *ffcli.Command {
+func DownTo(commandName string, run RunFunc, out *output.Output) *ffcli.Command {
 	var (
 		flagSet        = flag.NewFlagSet(fmt.Sprintf("%s downto", commandName), flag.ExitOnError)
-		schemaNameFlag = flagSet.String("db", "", `The target schema to modify.`)
+		schemaNameFlag = flagSet.String("db", "", `The target schema to migrate.`)
 		targetsFlag    = flagSet.String("target", "", "Revert all children of the given target. Comma-separated values are accepted.")
 	)
 
@@ -47,12 +47,7 @@ func DownTo(commandName string, factory RunnerFactory, out *output.Output) *ffcl
 			versions = append(versions, version)
 		}
 
-		r, err := factory(ctx, []string{*schemaNameFlag})
-		if err != nil {
-			return err
-		}
-
-		return r.Run(ctx, runner.Options{
+		return run(ctx, runner.Options{
 			Operations: []runner.MigrationOperation{
 				{
 					SchemaName:     *schemaNameFlag,

@@ -88,13 +88,13 @@ func (p *Provider) ServiceType() string {
 	return p.codeHost.ServiceType
 }
 
-func (p *Provider) ValidateConnection(ctx context.Context) []string {
+func (p *Provider) Validate() []string {
 	required := p.requiredAuthScopes()
 	if len(required) == 0 {
 		return []string{}
 	}
 
-	scopes, err := p.client.GetAuthenticatedOAuthScopes(ctx)
+	scopes, err := p.client.GetAuthenticatedOAuthScopes(context.Background())
 	if err != nil {
 		return []string{
 			fmt.Sprintf("Additional OAuth scopes are required, but failed to get available scopes: %+v", err),

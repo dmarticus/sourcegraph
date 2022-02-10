@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/auth/providers"
@@ -12,14 +13,9 @@ import (
 )
 
 // NewAuthzProviders returns the set of GitLab authz providers derived from the connections.
-//
-// It also returns any simple validation problems with the config, separating these into "serious problems"
-// and "warnings". "Serious problems" are those that should make Sourcegraph set authz.allowAccessByDefault
+// It also returns any validation problems with the config, separating these into "serious problems" and
+// "warnings". "Serious problems" are those that should make Sourcegraph set authz.allowAccessByDefault
 // to false. "Warnings" are all other validation problems.
-//
-// This constructor does not and should not directly check connectivity to external services - if
-// desired, callers should use `(*Provider).ValidateConnection` directly to get warnings related
-// to connection issues.
 func NewAuthzProviders(
 	cfg schema.SiteConfiguration,
 	conns []*types.GitLabConnection,
@@ -31,6 +27,11 @@ func NewAuthzProviders(
 			problems = append(problems, err.Error())
 		} else if p != nil {
 			ps = append(ps, p)
+		}
+	}
+	for _, p := range ps {
+		for _, problem := range p.Validate() {
+			warnings = append(warnings, fmt.Sprintf("GitLab config for %s was invalid: %s", p.ServiceID(), problem))
 		}
 	}
 

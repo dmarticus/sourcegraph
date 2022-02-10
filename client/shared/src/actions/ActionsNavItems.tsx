@@ -41,7 +41,7 @@ export interface ActionsNavItemsProps
     extends ActionsProps,
         ActionNavItemsClassProps,
         TelemetryProps,
-        Pick<ActionItemProps, 'showLoadingSpinnerDuringExecution' | 'actionItemStyleProps'> {
+        Pick<ActionItemProps, 'showLoadingSpinnerDuringExecution'> {
     /**
      * If true, it renders a `<ul className="nav">...</ul>` around the items. If there are no items, it renders `null`.
      *
@@ -110,7 +110,6 @@ export const ActionsNavItems: React.FunctionComponent<ActionsNavItemsProps> = pr
                     iconClassName={props.actionItemIconClass}
                     className={classNames(styles.actionItem, props.actionItemClass)}
                     pressedClassName={props.actionItemPressedClass}
-                    actionItemStyleProps={props.actionItemStyleProps}
                 />
             </li>
         </React.Fragment>

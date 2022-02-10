@@ -10,8 +10,7 @@ import (
 	"github.com/sourcegraph/sourcegraph/internal/types"
 )
 
-// SubRepoPermissions denotes access control rules within a repository's
-// contents.
+// SubRepoPermissions denotes access control rules within a repository's contents.
 //
 // Rules are expressed as Glob syntaxes:
 //
@@ -40,11 +39,8 @@ import (
 //
 // This Glob syntax is currently from github.com/gobwas/glob:
 // https://sourcegraph.com/github.com/gobwas/glob@e7a84e9525fe90abcda167b604e483cc959ad4aa/-/blob/glob.go?L39:6
-//
-// We use a third party library for double-wildcard support, which the standard
-// library does not provide.
-//
-// Paths are relative to the root of the repo.
+// We use a third party library for double-wildcard support, which the standard library
+// does not provide.
 type SubRepoPermissions struct {
 	PathIncludes []string
 	PathExcludes []string
@@ -137,10 +133,9 @@ type Provider interface {
 	// is defined.
 	URN() string
 
-	// ValidateConnection checks that the configuration and credentials of the authz provider
-	// can establish a valid connection with the provider, and returns warnings based on any
-	// issues it finds.
-	ValidateConnection(ctx context.Context) (warnings []string)
+	// Validate checks the configuration and credentials of the authz provider and returns any
+	// problems.
+	Validate() (problems []string)
 }
 
 // ErrUnauthenticated indicates an unauthenticated request.

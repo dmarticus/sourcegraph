@@ -33,8 +33,9 @@ var (
 	dbAddUserPasswordFlag = dbAddUserFlagSet.String("password", "sourcegraphsourcegraph", "User password")
 
 	dbCommand = &ffcli.Command{
-		Name:      "db",
-		ShortHelp: "Interact with Sourcegraph databases for development.",
+		Name:       "db",
+		ShortUsage: "",
+		LongHelp:   "",
 		Exec: func(ctx context.Context, args []string) error {
 			return flag.ErrHelp
 		},

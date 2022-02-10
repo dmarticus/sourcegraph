@@ -7,7 +7,6 @@ import (
 
 	"github.com/keegancsmith/sqlf"
 
-	cmtypes "github.com/sourcegraph/sourcegraph/enterprise/internal/codemonitors/types"
 	"github.com/sourcegraph/sourcegraph/internal/database/dbutil"
 	"github.com/sourcegraph/sourcegraph/internal/workerutil"
 )
@@ -37,7 +36,7 @@ func (a *ActionJob) RecordID() int {
 type ActionJobMetadata struct {
 	Description string
 	MonitorID   int64
-	Results     cmtypes.CommitSearchResults
+	NumResults  *int
 
 	// The query with after: filter.
 	Query string
@@ -226,7 +225,7 @@ SELECT
 	cm.description,
 	ctj.query_string,
 	cm.id AS monitorID,
-	ctj.search_results
+	jsonb_array_length(ctj.search_results)
 FROM cm_action_jobs caj
 INNER JOIN cm_trigger_jobs ctj on caj.trigger_event = ctj.id
 INNER JOIN cm_queries cq on cq.id = ctj.query
@@ -234,11 +233,10 @@ INNER JOIN cm_monitors cm on cm.id = cq.monitor
 WHERE caj.id = %s
 `
 
-// GetActionJobMetada returns the set of fields needed to execute all action jobs
 func (s *codeMonitorStore) GetActionJobMetadata(ctx context.Context, jobID int32) (*ActionJobMetadata, error) {
 	row := s.Store.QueryRow(ctx, sqlf.Sprintf(getActionJobMetadataFmtStr, jobID))
 	m := &ActionJobMetadata{}
-	return m, row.Scan(&m.Description, &m.Query, &m.MonitorID, &m.Results)
+	return m, row.Scan(&m.Description, &m.Query, &m.MonitorID, &m.NumResults)
 }
 
 const actionJobForIDFmtStr = `

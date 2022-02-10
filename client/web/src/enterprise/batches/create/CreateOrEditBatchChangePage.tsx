@@ -37,13 +37,11 @@ import { MonacoBatchSpecEditor } from './editor/MonacoBatchSpecEditor'
 import { LibraryPane } from './library/LibraryPane'
 import { NamespaceSelector } from './NamespaceSelector'
 import { useBatchSpecCode } from './useBatchSpecCode'
+import { usePreviewBatchSpec } from './useBatchSpecPreview'
 import { useExecuteBatchSpec } from './useExecuteBatchSpec'
 import { useInitialBatchSpec } from './useInitialBatchSpec'
 import { useNamespaces } from './useNamespaces'
-import { useWorkspacesPreview } from './useWorkspacesPreview'
-import { useImportingChangesets } from './workspaces-preview/useImportingChangesets'
-import { useWorkspaces, WorkspacePreviewFilters } from './workspaces-preview/useWorkspaces'
-import { WorkspacesPreview } from './workspaces-preview/WorkspacesPreview'
+import { useBatchSpecWorkspaceResolution, WorkspacesPreview } from './workspaces-preview/WorkspacesPreview'
 
 export interface CreateOrEditBatchChangePageProps extends ThemeProps, SettingsCascadeProps<Settings> {
     /**
@@ -210,9 +208,14 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
     )
 
     const [noCache, setNoCache] = useState<boolean>(false)
-    const toggleNoCache = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
-        event => setNoCache(event.target.checked),
-        []
+
+    const onChangeNoCache = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+        event => {
+            setNoCache(event.target.checked)
+            // Mark that the batch spec code on the backend is now stale.
+            setBatchSpecStale(true)
+        },
+        [setNoCache]
     )
 
     // Manage the batch spec input YAML code that's being edited.
@@ -221,38 +224,40 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
         batchChange.name
     )
 
-    const [filters, setFilters] = useState<WorkspacePreviewFilters>()
-    const workspacesConnection = useWorkspaces(batchSpec.id, filters)
-    const importingChangesetsConnection = useImportingChangesets(batchSpec.id)
+    // Track whenever the batch spec code that is presently in the editor is newer than
+    // the batch spec code on the backend.
+    const [batchSpecStale, setBatchSpecStale] = useState(false)
 
     // When we successfully submit the latest batch spec code to the backend for a new
-    // workspaces preview, we follow up by refetching the batch change to get the latest
-    // batch spec ID.
-    const onComplete = useCallback(() => {
-        // We handle any error here higher up the chain, so we can ignore it.
+    // workspaces preview, we can:
+    // - Mark that the batch spec code is no longer stale.
+    // - Mark that the user has previewed the workspaces at least once.
+    // - Refetch the batch change to get the latest batch spec.
+    const onCompletePreview = useCallback(() => {
+        setBatchSpecStale(false)
         refetchBatchChange().then(noop).catch(noop)
     }, [refetchBatchChange])
 
     // Manage the batch spec that was last submitted to the backend for the workspaces preview.
     const {
-        preview: previewBatchSpec,
-        isInProgress: isWorkspacesPreviewInProgress,
+        previewBatchSpec,
+        isLoading: isLoadingPreview,
         error: previewError,
         clearError: clearPreviewError,
         hasPreviewed,
-        cancel,
-        resolutionState,
-    } = useWorkspacesPreview(batchSpec.id, {
-        isBatchSpecApplied: isLatestBatchSpecApplied,
-        namespaceID: batchChange.namespace.id,
+    } = usePreviewBatchSpec(
+        batchSpec.id,
+        isLatestBatchSpecApplied,
+        batchChange.namespace.id,
         noCache,
-        onComplete,
-        filters,
-    })
+        onCompletePreview
+    )
 
     const clearErrorsAndHandleCodeChange = useCallback(
         (newCode: string) => {
             clearPreviewError()
+            // Mark that the batch spec code on the backend is now stale.
+            setBatchSpecStale(true)
             handleCodeChange(newCode)
         },
         [handleCodeChange, clearPreviewError]
@@ -260,21 +265,12 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
 
     // Disable the preview button if the batch spec code is invalid or the on: statement
     // is missing, or if we're already processing a preview.
-    const previewDisabled = useMemo(
-        () => (isValid !== true ? INVALID_BATCH_SPEC_TOOLTIP : isWorkspacesPreviewInProgress),
-        [isValid, isWorkspacesPreviewInProgress]
-    )
-
-    // The batch spec YAML code is considered stale if any part of it changes. This is
-    // because of a current limitation of the backend where we need to re-submit the batch
-    // spec code and wait for the new workspaces preview to finish resolving before we can
-    // execute, or else the execution will use an older batch spec. We will address this
-    // when we implement the "auto-saving" feature and decouple previewing workspaces from
-    // updating the batch spec code.
-    const isBatchSpecStale = useMemo(() => initialBatchSpecCode !== debouncedCode, [
-        initialBatchSpecCode,
-        debouncedCode,
+    const previewDisabled = useMemo(() => (isValid !== true ? INVALID_BATCH_SPEC_TOOLTIP : isLoadingPreview), [
+        isValid,
+        isLoadingPreview,
     ])
+
+    const workspacesPreviewResolution = useBatchSpecWorkspaceResolution(batchSpec, { fetchPolicy: 'cache-first' })
 
     // Manage submitting a batch spec for execution.
     const { executeBatchSpec, isLoading: isExecuting, error: executeError } = useExecuteBatchSpec(batchSpec.id)
@@ -290,11 +286,11 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
         const disableExecution = Boolean(
             isValid !== true ||
                 previewError ||
-                isWorkspacesPreviewInProgress ||
+                isLoadingPreview ||
                 isExecuting ||
                 !hasPreviewed ||
-                isBatchSpecStale ||
-                resolutionState !== BatchSpecWorkspaceResolutionState.COMPLETED
+                batchSpecStale ||
+                workspacesPreviewResolution?.state !== BatchSpecWorkspaceResolutionState.COMPLETED
         )
         // The execution tooltip only shows if the execute button is disabled, and explains why.
         const executionTooltip =
@@ -302,9 +298,9 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
                 ? INVALID_BATCH_SPEC_TOOLTIP
                 : !hasPreviewed
                 ? 'Preview workspaces first before you run.'
-                : isBatchSpecStale
+                : batchSpecStale
                 ? 'Update your workspaces preview before you run.'
-                : isWorkspacesPreviewInProgress || resolutionState !== BatchSpecWorkspaceResolutionState.COMPLETED
+                : isLoadingPreview || workspacesPreviewResolution?.state !== BatchSpecWorkspaceResolutionState.COMPLETED
                 ? 'Wait for the preview to finish first.'
                 : undefined
 
@@ -313,10 +309,10 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
         hasPreviewed,
         isValid,
         previewError,
-        isWorkspacesPreviewInProgress,
+        isLoadingPreview,
         isExecuting,
-        isBatchSpecStale,
-        resolutionState,
+        batchSpecStale,
+        workspacesPreviewResolution?.state,
     ])
 
     const buttons = (
@@ -330,12 +326,12 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
             >
                 Run batch spec
             </Button>
-            <BatchSpecDownloadLink name={batchChange.name} originalInput={code} isLightTheme={isLightTheme}>
+            <BatchSpecDownloadLink name="new-batch-spec" originalInput={code} isLightTheme={isLightTheme}>
                 or download for src-cli
             </BatchSpecDownloadLink>
             <div className="form-group">
                 <label>
-                    <input type="checkbox" className="mr-2" checked={noCache} onChange={toggleNoCache} />
+                    <input type="checkbox" className="mr-2" checked={noCache} onChange={onChangeNoCache} />
                     Disable cache
                 </label>
             </div>
@@ -370,19 +366,12 @@ const EditPage: React.FunctionComponent<EditPageProps> = ({
                     )}
                 >
                     <WorkspacesPreview
+                        batchSpec={batchSpec}
+                        hasPreviewed={hasPreviewed}
                         previewDisabled={previewDisabled}
                         preview={() => previewBatchSpec(debouncedCode)}
-                        batchSpecStale={
-                            isBatchSpecStale || isWorkspacesPreviewInProgress || resolutionState === 'CANCELED'
-                        }
-                        hasPreviewed={hasPreviewed}
+                        batchSpecStale={batchSpecStale}
                         excludeRepo={excludeRepo}
-                        cancel={cancel}
-                        isWorkspacesPreviewInProgress={isWorkspacesPreviewInProgress}
-                        resolutionState={resolutionState}
-                        workspacesConnection={workspacesConnection}
-                        importingChangesetsConnection={importingChangesetsConnection}
-                        setFilters={setFilters}
                     />
                 </div>
             </div>

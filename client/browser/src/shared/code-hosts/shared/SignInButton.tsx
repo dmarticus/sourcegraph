@@ -2,7 +2,6 @@ import React, { useCallback } from 'react'
 import { interval, Observable } from 'rxjs'
 import { switchMap, filter, take, tap } from 'rxjs/operators'
 
-import { createURLWithUTM } from '@sourcegraph/shared/src/tracking/utm'
 import { useEventObservable } from '@sourcegraph/wildcard'
 
 import { SourcegraphIconButton } from '../../components/SourcegraphIconButton'
@@ -18,10 +17,7 @@ export const SignInButton: React.FunctionComponent<{
      */
     onSignInClose?: () => void
 }> = ({ className, iconClassName, sourcegraphURL, onSignInClose }) => {
-    const signInUrl = createURLWithUTM(new URL('/sign-in?close=true', sourcegraphURL), {
-        utm_source: getPlatformName(),
-        utm_campaign: 'sign-in-button',
-    }).href
+    const signInUrl = new URL(`/sign-in?close=true&utm_source=${getPlatformName()}`, sourcegraphURL).href
 
     const [nextSignInClick] = useEventObservable(
         useCallback(

@@ -49,7 +49,7 @@
     }
 
     &.open {
-        width: 15rem;
+        max-width: 18rem;
         max-height: 95vh;
         display: flex;
         flex-direction: column;

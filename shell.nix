@@ -46,6 +46,9 @@ in pkgs.mkShell {
     git
     parallel
 
+    # monitors src files to restart dev services
+    watchman
+
     # CI lint tools you need locally
     shfmt
     shellcheck

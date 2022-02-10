@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
@@ -14,10 +13,10 @@ import (
 	"github.com/sourcegraph/sourcegraph/lib/output"
 )
 
-func Up(commandName string, factory RunnerFactory, out *output.Output) *ffcli.Command {
+func Up(commandName string, run RunFunc, out *output.Output) *ffcli.Command {
 	var (
 		flagSet        = flag.NewFlagSet(fmt.Sprintf("%s up", commandName), flag.ExitOnError)
-		schemaNameFlag = flagSet.String("db", "all", `The target schema(s) to modify. Comma-separated values are accepted. Supply "all" (the default) to migrate all schemas.`)
+		schemaNameFlag = flagSet.String("db", "all", `The target schema(s) to migrate. Comma-separated values are accepted. Supply "all" (the default) to migrate all schemas.`)
 	)
 
 	exec := func(ctx context.Context, args []string) error {
@@ -34,7 +33,6 @@ func Up(commandName string, factory RunnerFactory, out *output.Output) *ffcli.Co
 		if len(schemaNames) == 1 && schemaNames[0] == "all" {
 			schemaNames = schemas.SchemaNames
 		}
-		sort.Strings(schemaNames)
 
 		operations := []runner.MigrationOperation{}
 		for _, schemaName := range schemaNames {
@@ -44,19 +42,14 @@ func Up(commandName string, factory RunnerFactory, out *output.Output) *ffcli.Co
 			})
 		}
 
-		r, err := factory(ctx, schemaNames)
-		if err != nil {
-			return err
-		}
-
-		return r.Run(ctx, runner.Options{
+		return run(ctx, runner.Options{
 			Operations: operations,
 		})
 	}
 
 	return &ffcli.Command{
 		Name:       "up",
-		ShortUsage: fmt.Sprintf("%s up [-db=<schema>]", commandName),
+		ShortUsage: fmt.Sprintf("%s up -db=<schema>", commandName),
 		ShortHelp:  "Apply all migrations",
 		FlagSet:    flagSet,
 		Exec:       exec,

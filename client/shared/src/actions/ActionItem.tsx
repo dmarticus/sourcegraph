@@ -6,11 +6,12 @@ import { from, Subject, Subscription } from 'rxjs'
 import { catchError, map, mapTo, mergeMap, startWith, tap } from 'rxjs/operators'
 
 import { asError, ErrorLike, isErrorLike, isExternalLink } from '@sourcegraph/common'
-import { LoadingSpinner, ButtonLink, ButtonLinkProps, WildcardThemeContext } from '@sourcegraph/wildcard'
+import { LoadingSpinner } from '@sourcegraph/wildcard'
 
 import { ExecuteCommandParameters } from '../api/client/mainthread-api'
 import { ActionContribution, Evaluated } from '../api/protocol'
 import { urlForOpenPanel } from '../commands/commands'
+import { ButtonLink } from '../components/LinkOrButton'
 import { ExtensionsControllerProps } from '../extensions/controller'
 import { PlatformContextProps } from '../platform/context'
 import { TelemetryProps } from '../telemetry/telemetryService'
@@ -37,20 +38,12 @@ export interface ActionItemAction {
     disabledWhen?: boolean
 }
 
-export interface ActionItemStyleProps {
-    actionItemVariant?: ButtonLinkProps['variant']
-    actionItemSize?: ButtonLinkProps['size']
-    actionItemOutline?: ButtonLinkProps['outline']
-}
-
 export interface ActionItemComponentProps
     extends ExtensionsControllerProps<'executeCommand'>,
         PlatformContextProps<'forceUpdateTooltip' | 'settings'> {
     location: H.Location
 
     iconClassName?: string
-
-    actionItemStyleProps?: ActionItemStyleProps
 }
 
 export interface ActionItemProps extends ActionItemAction, ActionItemComponentProps, TelemetryProps {
@@ -115,10 +108,7 @@ interface State {
     actionOrError: typeof LOADING | null | ErrorLike
 }
 
-export class ActionItem extends React.PureComponent<ActionItemProps, State, typeof WildcardThemeContext> {
-    public static contextType = WildcardThemeContext
-    public context!: React.ContextType<typeof WildcardThemeContext>
-
+export class ActionItem extends React.PureComponent<ActionItemProps, State> {
     public state: State = { actionOrError: null }
 
     private commandExecutions = new Subject<ExecuteCommandParameters>()
@@ -249,13 +239,6 @@ export class ActionItem extends React.PureComponent<ActionItemProps, State, type
                       rel: 'noopener noreferrer',
                   }
                 : {}
-        const buttonLinkProps: Partial<ButtonLinkProps> = this.context.isBranded
-            ? {
-                  variant: this.props.actionItemStyleProps?.actionItemVariant ?? 'link',
-                  size: this.props.actionItemStyleProps?.actionItemSize,
-                  outline: this.props.actionItemStyleProps?.actionItemOutline,
-              }
-            : {}
 
         return (
             <ButtonLink
@@ -277,8 +260,7 @@ export class ActionItem extends React.PureComponent<ActionItemProps, State, type
                     'test-action-item',
                     this.props.className,
                     showLoadingSpinner && styles.actionItemLoading,
-                    pressed && [this.props.pressedClassName],
-                    buttonLinkProps.variant === 'link' && 'p-0 font-weight-normal border-0 align-baseline d-inline'
+                    pressed && [this.props.pressedClassName]
                 )}
                 pressed={pressed}
                 onSelect={this.runAction}
@@ -286,7 +268,6 @@ export class ActionItem extends React.PureComponent<ActionItemProps, State, type
                 // it as a button that executes the command.
                 to={to}
                 {...newTabProps}
-                {...buttonLinkProps}
                 tabIndex={this.props.tabIndex}
             >
                 {content}{' '}
