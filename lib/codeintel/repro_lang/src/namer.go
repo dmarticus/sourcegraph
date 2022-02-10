@@ -2,20 +2,6 @@ package repro_lang
 
 import "fmt"
 
-func (d *sourceFile) resolveReferences(context *globalContext) {
-	for _, def := range d.definitions {
-		for _, ident := range def.relationIdentifiers() {
-			if ident == nil {
-				continue
-			}
-			ident.resolveSymbol(d.localScope, context)
-		}
-	}
-	for _, ref := range d.references {
-		ref.name.resolveSymbol(d.localScope, context)
-	}
-}
-
 func (d *sourceFile) resolveDefinitions(context *globalContext) {
 	for _, def := range d.definitions {
 		scope := context.globalScope
@@ -35,6 +21,21 @@ func (d *sourceFile) resolveDefinitions(context *globalContext) {
 			)
 		}
 		def.name.symbol = symbol
+		scope.names[def.name.value] = symbol
 	}
 
+}
+
+func (d *sourceFile) resolveReferences(context *globalContext) {
+	for _, def := range d.definitions {
+		for _, ident := range def.relationIdentifiers() {
+			if ident == nil {
+				continue
+			}
+			ident.resolveSymbol(d.localScope, context)
+		}
+	}
+	for _, ref := range d.references {
+		ref.name.resolveSymbol(d.localScope, context)
+	}
 }
