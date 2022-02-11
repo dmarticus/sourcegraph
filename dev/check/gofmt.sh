@@ -19,8 +19,6 @@ DIFF=$(
     -o -path ./docker-images/syntax-highlighter/crates/sg-syntax/languages/tree-sitter-go \
     \) -prune -o -name '*.go' -exec gofmt -s -w -d {} +
 )
-
-echo $DIFF
 if [ -z "$DIFF" ]; then
   echo "Success: gofmt check passed."
   exit 0

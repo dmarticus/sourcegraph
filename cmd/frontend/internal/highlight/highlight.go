@@ -441,16 +441,3 @@ func SplitLineRanges(html template.HTML, ranges []LineRange) ([][]string, error)
 	}
 	return lineRanges, nil
 }
-
-// isTreeSitterSupportAvailable checks whether a particular filepath is useful
-// for treesitter
-//
-// TODO: Should just be filetype instead.
-func isTreeSitterSupportAvailable(filepath string) bool {
-	for _, extension := range []string{".go"} {
-		if strings.HasSuffix(filepath, extension) {
-			return true
-		}
-	}
-	return false
-}
